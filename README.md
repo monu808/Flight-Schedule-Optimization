@@ -267,5 +267,8 @@ This project addresses the Honeywell Hackathon challenge for flight schedule opt
 
 ---
 
+<<<<<<< HEAD
 **Built with ❤️ for airline operations teams**
+=======
+>>>>>>> cb8aa5f0bb2a86eafb49ab021c75ac5fe7cc527a
 
