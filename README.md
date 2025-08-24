@@ -108,7 +108,4 @@ Fallback: if Gemini isn't available, the app gracefully falls back to a local an
 
 ---
 
-If you want, I can also:
-- generate a short one-page PDF report template with the key visuals to upload for the hackathon submission, or
-- add an in-app download button that exports the current analysis to PDF.
 
