@@ -29,48 +29,57 @@ class SimpleNLPQueryProcessor:
         self.time_patterns = self._load_time_patterns()
         
     def _load_intent_patterns(self) -> Dict[str, List[str]]:
-        """Load intent patterns for query classification."""
+        """Load intent patterns for airline operations queries."""
         return {
-            'show': [
-                'show', 'display', 'list', 'get', 'find', 'what', 'which', 'tell me'
+            'analyze': [
+                'analyze', 'examine', 'study', 'investigate', 'review', 'assess', 'what', 'how'
             ],
             'optimize': [
-                'optimize', 'improve', 'adjust', 'schedule', 'reschedule', 'rearrange'
+                'optimize', 'improve', 'enhance', 'maximize', 'minimize', 'efficient', 'best'
+            ],
+            'plan': [
+                'plan', 'schedule', 'allocate', 'assign', 'distribute', 'organize'
             ],
             'predict': [
-                'predict', 'forecast', 'estimate', 'expect', 'anticipate', 'will'
+                'predict', 'forecast', 'estimate', 'expect', 'anticipate', 'project'
             ],
-            'analyze': [
-                'analyze', 'examine', 'study', 'investigate', 'review', 'assess'
+            'manage': [
+                'manage', 'control', 'handle', 'coordinate', 'supervise', 'oversee'
             ]
         }
     
     def _load_entity_mappings(self) -> Dict[str, List[str]]:
-        """Load entity mappings for query parsing."""
+        """Load entity mappings for airline operations queries."""
         return {
-            'flights': [
-                'flight', 'flights', 'aircraft', 'plane', 'airplane'
+            'operations': [
+                'operations', 'operational', 'ops', 'management', 'control'
+            ],
+            'capacity': [
+                'capacity', 'utilization', 'throughput', 'volume', 'load', 'efficiency'
+            ],
+            'revenue': [
+                'revenue', 'profit', 'income', 'earnings', 'pricing', 'cost'
             ],
             'delays': [
                 'delay', 'delays', 'delayed', 'late', 'lateness', 'behind schedule'
             ],
             'runways': [
-                'runway', 'runways', 'strip', 'landing strip', 'takeoff strip'
+                'runway', 'runways', 'strip', 'landing strip', 'takeoff strip', 'ground'
             ],
             'schedule': [
-                'schedule', 'timetable', 'time', 'timing', 'slot', 'slots'
+                'schedule', 'timetable', 'time', 'timing', 'slot', 'slots', 'allocation'
             ],
-            'airlines': [
-                'airline', 'airlines', 'carrier', 'carriers'
+            'fleet': [
+                'aircraft', 'fleet', 'plane', 'airplane', 'turnaround', 'utilization'
             ],
-            'airports': [
-                'airport', 'airports', 'terminal', 'hub'
+            'disruption': [
+                'disruption', 'cascade', 'impact', 'critical', 'risk', 'chain'
             ],
-            'passengers': [
-                'passenger', 'passengers', 'people', 'travelers'
+            'optimization': [
+                'optimize', 'optimization', 'improve', 'efficiency', 'best', 'optimal'
             ],
-            'throughput': [
-                'throughput', 'capacity', 'volume', 'traffic', 'flow'
+            'resources': [
+                'resource', 'allocation', 'assignment', 'distribution', 'planning'
             ]
         }
     
@@ -444,18 +453,18 @@ class SimpleNLPQueryProcessor:
         """
         suggestions = []
         
-        # Common query templates
+        # Airline operations query templates
         templates = [
-            "Show me the most delayed flights tomorrow",
-            "Optimize evening schedule for maximum throughput",
-            "Which aircraft types cause most delays?",
-            "Analyze runway utilization during peak hours",
-            "Predict delays for international flights",
-            "Show flights delayed more than 30 minutes",
-            "Which runway has the highest traffic?",
-            "Optimize schedule for Air India flights",
-            "Show morning flight delays",
-            "Analyze delay patterns by airline"
+            "What's our runway utilization during peak hours?",
+            "How can I optimize 7-9 AM slots for maximum revenue?",
+            "Which flights have highest cascade delay impact?",
+            "What's the optimal runway assignment strategy?",
+            "How can we reduce operational costs during peak times?",
+            "Which aircraft should we prioritize for turnaround efficiency?",
+            "What time slots have lowest delay risk for scheduling?",
+            "How can we maximize capacity during business hours?",
+            "Which flights cause most disruption to our operations?",
+            "What's the best scheduling strategy for weather contingency?"
         ]
         
         # Filter templates based on partial query

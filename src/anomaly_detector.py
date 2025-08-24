@@ -41,16 +41,31 @@ class FlightAnomalyDetector:
         df_features = df.copy()
         
         # Ensure datetime
-        df_features['Scheduled_Time'] = pd.to_datetime(df_features['Scheduled_Time'])
+        if 'Scheduled_Time' in df_features.columns:
+            try:
+                df_features['Scheduled_Time'] = pd.to_datetime(df_features['Scheduled_Time'])
+            except Exception:
+                # Create a default timestamp if conversion fails
+                df_features['Scheduled_Time'] = pd.to_datetime('2025-08-24')
+        else:
+            # Create a default timestamp if missing
+            df_features['Scheduled_Time'] = pd.to_datetime('2025-08-24')
         
         # Time-based features
         df_features['Hour'] = df_features['Scheduled_Time'].dt.hour
         df_features['Day_of_Week'] = df_features['Scheduled_Time'].dt.dayofweek
         df_features['Month'] = df_features['Scheduled_Time'].dt.month
         df_features['Day_of_Year'] = df_features['Scheduled_Time'].dt.dayofyear
-        
-        # Delay features
-        df_features['Delay_Minutes'] = df_features.get('Delay_Minutes', 0)
+            
+        # Delay features - handle numeric conversion safely
+        if 'Delay_Minutes' in df_features.columns:
+            # Convert to numeric, errors='coerce' will convert non-numeric values to NaN
+            df_features['Delay_Minutes'] = pd.to_numeric(df_features['Delay_Minutes'], errors='coerce')
+            # Fill NaN values with 0
+            df_features['Delay_Minutes'] = df_features['Delay_Minutes'].fillna(0)
+        else:
+            df_features['Delay_Minutes'] = 0
+            
         df_features['Is_Delayed'] = (df_features['Delay_Minutes'] > 0).astype(int)
         df_features['Delay_Category'] = pd.cut(
             df_features['Delay_Minutes'],
@@ -58,24 +73,61 @@ class FlightAnomalyDetector:
             labels=['On_Time', 'Minor', 'Moderate', 'Major', 'Severe']
         )
         
-        # Capacity and efficiency features
-        df_features['Capacity'] = df_features.get('Capacity', 150)
+        # Capacity and efficiency features - handle safe numeric conversion
+        if 'Capacity' in df_features.columns:
+            df_features['Capacity'] = pd.to_numeric(df_features['Capacity'], errors='coerce').fillna(150)
+        else:
+            df_features['Capacity'] = 150
+            
         df_features['Capacity_Utilization'] = df_features['Capacity'] / df_features['Capacity'].max()
         
-        # Aircraft type encoding
-        aircraft_types = df_features['Aircraft_Type'].value_counts().index[:10]  # Top 10 aircraft types
-        for aircraft in aircraft_types:
-            df_features[f'Aircraft_{aircraft}'] = (df_features['Aircraft_Type'] == aircraft).astype(int)
+        # Ensure Aircraft_Type column exists
+        if 'Aircraft_Type' not in df_features.columns:
+            df_features['Aircraft_Type'] = 'Unknown'
         
-        # Airline encoding
-        airlines = df_features['Airline'].value_counts().index[:10]  # Top 10 airlines
-        for airline in airlines:
-            df_features[f'Airline_{airline}'] = (df_features['Airline'] == airline).astype(int)
+        # Instead of individual columns per aircraft type, use a categorical approach
+        # This avoids issues with specific aircraft type strings like 'A350'
         
-        # Runway encoding
-        runways = df_features['Runway'].unique()
-        for runway in runways:
-            df_features[f'Runway_{runway}'] = (df_features['Runway'] == runway).astype(int)
+        # Clean and standardize aircraft types
+        df_features['Aircraft_Type'] = df_features['Aircraft_Type'].astype(str).str.replace(r'\W+', '_', regex=True)
+        
+        # Create a simplified aircraft family column (first 4 chars or type prefix)
+        df_features['Aircraft_Family'] = df_features['Aircraft_Type'].str.extract(r'([A-Za-z0-9]{1,4})', expand=False).fillna('UNK')
+        
+        # Create binary features for common aircraft families
+        common_families = ['A320', 'A330', 'A350', 'B737', 'B747', 'B777', 'B787']
+        for family in common_families:
+            df_features[f'Is_{family}_Family'] = df_features['Aircraft_Family'].str.contains(family, case=False, regex=False).astype(int)
+        
+        # Add a wide/narrow body indicator based on aircraft family
+        wide_body = ['A330', 'A350', 'A380', 'B747', 'B767', 'B777', 'B787']
+        df_features['Is_Wide_Body'] = df_features['Aircraft_Family'].isin([f for f in wide_body]).astype(int)
+        
+        # Airline encoding - handle missing or invalid airline data
+        if 'Airline' in df_features.columns:
+            # Clean airline names to avoid conversion issues
+            df_features['Airline'] = df_features['Airline'].astype(str).str.replace(r'\W+', '_', regex=True)
+            airlines = df_features['Airline'].value_counts().index[:10]  # Top 10 airlines
+            for airline in airlines:
+                # Create safe column names
+                safe_col_name = f"Airline_{airline.replace(' ', '_').replace('-', '_')[:10]}"
+                df_features[safe_col_name] = (df_features['Airline'] == airline).astype(int)
+        else:
+            df_features['Airline'] = 'Unknown'
+            df_features['Airline_Unknown'] = 1
+        
+        # Runway encoding - handle missing or invalid runway data
+        if 'Runway' in df_features.columns:
+            # Clean runway identifiers
+            df_features['Runway'] = df_features['Runway'].astype(str).str.replace(r'\W+', '_', regex=True)
+            runways = df_features['Runway'].unique()
+            for runway in runways:
+                # Create safe column names
+                safe_col_name = f"Runway_ID_{runway.replace(' ', '_').replace('-', '_')[:5]}"
+                df_features[safe_col_name] = (df_features['Runway'] == runway).astype(int)
+        else:
+            df_features['Runway'] = 'R1'
+            df_features['Runway_ID_R1'] = 1
         
         # Peak time indicators
         df_features['Is_Peak_Hour'] = df_features['Hour'].isin([7, 8, 9, 18, 19, 20]).astype(int)
@@ -83,7 +135,8 @@ class FlightAnomalyDetector:
         
         # Congestion features (if available)
         if 'Congestion_Factor' in df_features.columns:
-            df_features['Congestion_Factor'] = df_features['Congestion_Factor']
+            # Convert to numeric safely
+            df_features['Congestion_Factor'] = pd.to_numeric(df_features['Congestion_Factor'], errors='coerce').fillna(1.0)
             df_features['High_Congestion'] = (df_features['Congestion_Factor'] > 1.5).astype(int)
         else:
             df_features['Congestion_Factor'] = 1.0
@@ -91,23 +144,35 @@ class FlightAnomalyDetector:
         
         # Statistical features for each flight
         # Rolling statistics (if enough data)
-        if len(df_features) > 10:
-            df_features = df_features.sort_values('Scheduled_Time')
-            df_features['Rolling_Delay_Mean'] = df_features['Delay_Minutes'].rolling(window=5, min_periods=1).mean()
-            df_features['Rolling_Delay_Std'] = df_features['Delay_Minutes'].rolling(window=5, min_periods=1).std().fillna(0)
-        else:
+        try:
+            if len(df_features) > 10:
+                df_features = df_features.sort_values('Scheduled_Time')
+                df_features['Rolling_Delay_Mean'] = df_features['Delay_Minutes'].rolling(window=5, min_periods=1).mean()
+                df_features['Rolling_Delay_Std'] = df_features['Delay_Minutes'].rolling(window=5, min_periods=1).std().fillna(0)
+            else:
+                df_features['Rolling_Delay_Mean'] = df_features['Delay_Minutes']
+                df_features['Rolling_Delay_Std'] = 0
+        except Exception:
+            # Fallback if rolling calculation fails
             df_features['Rolling_Delay_Mean'] = df_features['Delay_Minutes']
             df_features['Rolling_Delay_Std'] = 0
         
         # Hourly traffic density
-        hourly_counts = df_features.groupby('Hour').size()
-        df_features['Hourly_Traffic_Density'] = df_features['Hour'].map(hourly_counts)
+        try:
+            hourly_counts = df_features.groupby('Hour').size()
+            df_features['Hourly_Traffic_Density'] = df_features['Hour'].map(hourly_counts)
+        except Exception:
+            df_features['Hourly_Traffic_Density'] = 1
         
         # Runway utilization at the time
-        runway_hourly = df_features.groupby(['Runway', 'Hour']).size()
-        df_features['Runway_Hour_Key'] = df_features['Runway'] + '_' + df_features['Hour'].astype(str)
-        runway_hour_counts = df_features.groupby('Runway_Hour_Key').size()
-        df_features['Runway_Utilization'] = df_features['Runway_Hour_Key'].map(runway_hour_counts)
+        try:
+            runway_hourly = df_features.groupby(['Runway', 'Hour']).size()
+            df_features['Runway_Hour_Key'] = df_features['Runway'].astype(str) + '_' + df_features['Hour'].astype(str)
+            runway_hour_counts = df_features.groupby('Runway_Hour_Key').size()
+            df_features['Runway_Utilization'] = df_features['Runway_Hour_Key'].map(runway_hour_counts).fillna(1)
+        except Exception:
+            df_features['Runway_Hour_Key'] = 'R1_0'
+            df_features['Runway_Utilization'] = 1
         
         # Select numeric features for ML
         numeric_features = [
@@ -118,10 +183,10 @@ class FlightAnomalyDetector:
             'Hourly_Traffic_Density', 'Runway_Utilization'
         ]
         
-        # Add encoded features
-        aircraft_features = [col for col in df_features.columns if col.startswith('Aircraft_')]
+        # Add encoded features - using more specific prefixes to avoid conflicts
+        aircraft_features = [col for col in df_features.columns if col.startswith('Is_') and ('Family' in col or 'Body' in col)]
         airline_features = [col for col in df_features.columns if col.startswith('Airline_')]
-        runway_features = [col for col in df_features.columns if col.startswith('Runway_')]
+        runway_features = [col for col in df_features.columns if col.startswith('Runway_ID_')]
         
         self.feature_columns = numeric_features + aircraft_features + airline_features + runway_features
         
@@ -142,52 +207,105 @@ class FlightAnomalyDetector:
         Returns:
             Training results dictionary
         """
-        # Prepare features
-        df_features = self.prepare_features(df)
-        
-        # Extract feature matrix
-        X = df_features[self.feature_columns].fillna(0)
-        
-        # Scale features
-        X_scaled = self.scaler.fit_transform(X)
-        
-        # Train Isolation Forest
-        isolation_predictions = self.isolation_forest.fit_predict(X_scaled)
-        isolation_scores = self.isolation_forest.decision_function(X_scaled)
-        
-        # Train DBSCAN
-        dbscan_predictions = self.dbscan.fit_predict(X_scaled)
-        
-        # Combine predictions (ensemble approach)
-        # -1 indicates anomaly in isolation forest, in DBSCAN -1 indicates noise/anomaly
-        combined_anomalies = ((isolation_predictions == -1) | (dbscan_predictions == -1)).astype(int)
-        
-        # Store results
-        df_features['Isolation_Anomaly'] = (isolation_predictions == -1).astype(int)
-        df_features['Isolation_Score'] = isolation_scores
-        df_features['DBSCAN_Cluster'] = dbscan_predictions
-        df_features['DBSCAN_Anomaly'] = (dbscan_predictions == -1).astype(int)
-        df_features['Combined_Anomaly'] = combined_anomalies
-        
-        # Calculate confidence scores
-        df_features['Anomaly_Confidence'] = np.abs(isolation_scores)
-        
-        # Identify different types of anomalies
-        df_features['Anomaly_Type'] = self._classify_anomaly_types(df_features)
-        
-        self.is_trained = True
-        
-        # Calculate performance metrics
-        results = {
-            'total_samples': len(df_features),
-            'isolation_anomalies': (isolation_predictions == -1).sum(),
-            'dbscan_anomalies': (dbscan_predictions == -1).sum(),
-            'combined_anomalies': combined_anomalies.sum(),
-            'anomaly_rate': combined_anomalies.mean() * 100,
-            'unique_clusters': len(set(dbscan_predictions)) - (1 if -1 in dbscan_predictions else 0),
-            'feature_importance': self._calculate_feature_importance(X_scaled, isolation_scores),
-            'results_df': df_features
-        }
+        try:
+            # Prepare features
+            df_features = self.prepare_features(df)
+            
+            # Make sure feature columns exist
+            for col in self.feature_columns:
+                if col not in df_features.columns:
+                    df_features[col] = 0
+            
+            # Filter feature columns to only include those that exist in df_features
+            available_features = [col for col in self.feature_columns if col in df_features.columns]
+            
+            if not available_features:
+                raise ValueError("No valid features available for anomaly detection")
+            
+            # Add minimum required features if not present
+            minimum_features = ['Hour', 'Day_of_Week', 'Is_Peak_Hour', 'Is_Weekend']
+            missing_min_features = [col for col in minimum_features if col not in available_features]
+            
+            for col in missing_min_features:
+                if col == 'Hour':
+                    df_features[col] = 12  # Default to noon
+                elif col == 'Day_of_Week':
+                    df_features[col] = 0  # Default to Monday
+                elif col in ['Is_Peak_Hour', 'Is_Weekend']:
+                    df_features[col] = 0  # Default to False
+                available_features.append(col)
+            
+            # Extract feature matrix - handle any remaining NaNs
+            X = df_features[available_features].fillna(0)
+            
+            # Handle potential type issues - ensure everything is numeric
+            numeric_X = pd.DataFrame(index=X.index)
+            for col in X.columns:
+                try:
+                    numeric_X[col] = pd.to_numeric(X[col], errors='coerce').fillna(0)
+                except Exception as e:
+                    print(f"Error converting column {col} to numeric: {str(e)}")
+                    numeric_X[col] = 0  # Default to zero for problematic columns
+            
+            # Replace X with fully numeric version
+            X = numeric_X
+            
+            # Scale features
+            X_scaled = self.scaler.fit_transform(X)
+            
+            # Train Isolation Forest
+            isolation_predictions = self.isolation_forest.fit_predict(X_scaled)
+            isolation_scores = self.isolation_forest.decision_function(X_scaled)
+            
+            # Train DBSCAN
+            dbscan_predictions = self.dbscan.fit_predict(X_scaled)
+            
+            # Combine predictions (ensemble approach)
+            # -1 indicates anomaly in isolation forest, in DBSCAN -1 indicates noise/anomaly
+            combined_anomalies = ((isolation_predictions == -1) | (dbscan_predictions == -1)).astype(int)
+            
+            # Store results
+            df_features['Isolation_Anomaly'] = (isolation_predictions == -1).astype(int)
+            df_features['Isolation_Score'] = isolation_scores
+            df_features['DBSCAN_Cluster'] = dbscan_predictions
+            df_features['DBSCAN_Anomaly'] = (dbscan_predictions == -1).astype(int)
+            df_features['Combined_Anomaly'] = combined_anomalies
+            
+            # Calculate confidence scores
+            df_features['Anomaly_Confidence'] = np.abs(isolation_scores)
+            
+            # Identify different types of anomalies
+            df_features['Anomaly_Type'] = self._classify_anomaly_types(df_features)
+            
+            self.is_trained = True
+            
+            # Calculate performance metrics
+            results = {
+                'total_samples': len(df_features),
+                'isolation_anomalies': (isolation_predictions == -1).sum(),
+                'dbscan_anomalies': (dbscan_predictions == -1).sum(),
+                'combined_anomalies': combined_anomalies.sum(),
+                'anomaly_rate': combined_anomalies.mean() * 100,
+                'unique_clusters': len(set(dbscan_predictions)) - (1 if -1 in dbscan_predictions else 0),
+                'feature_importance': self._calculate_feature_importance(X_scaled, isolation_scores),
+                'results_df': df_features
+            }
+            return results
+        except Exception as e:
+            # Provide informative error message and fallback
+            print(f"Error in anomaly detection: {str(e)}")
+            # Return minimal results with error info
+            return {
+                'total_samples': len(df),
+                'error': str(e),
+                'combined_anomalies': 0,
+                'anomaly_rate': 0,
+                'isolation_anomalies': 0,
+                'dbscan_anomalies': 0,
+                'unique_clusters': 0,
+                'feature_importance': {},
+                'results_df': df.copy()
+            }
         
         return results
     

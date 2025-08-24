@@ -386,6 +386,73 @@ class CascadeDelayPredictor:
             }
         }
     
+    def analyze_cascade_impact(self, df: pd.DataFrame) -> Dict:
+        """
+        Analyze flights with highest cascading delay impact potential.
+        
+        Args:
+            df: Flight schedule DataFrame
+            
+        Returns:
+            Dictionary with analysis results
+        """
+        try:
+            # Check if required columns exist
+            required_cols = ['Flight_ID', 'Aircraft_ID', 'Scheduled_Time', 'Destination']
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            
+            if missing_cols:
+                raise ValueError(f"Missing required columns: {', '.join(missing_cols)}")
+            
+            # Build network from dataframe
+            self.build_flight_network(df)
+            
+            # Calculate betweenness centrality to find critical nodes
+            centrality = nx.betweenness_centrality(self.flight_graph)
+            
+            # Calculate degree metrics
+            in_degree = dict(self.flight_graph.in_degree())
+            out_degree = dict(self.flight_graph.out_degree())
+            
+            # Calculate impact score based on network metrics
+            impact_scores = {}
+            for node in self.flight_graph.nodes():
+                # Impact score based on centrality and connectivity
+                impact_scores[node] = (
+                    centrality.get(node, 0) * 10 +  # Scale up centrality
+                    in_degree.get(node, 0) * 0.5 +   # Incoming connections
+                    out_degree.get(node, 0) * 2      # Outgoing connections matter more
+                )
+            
+            # Rank flights by impact score
+            critical_flights = []
+            for flight_id, score in sorted(impact_scores.items(), key=lambda x: x[1], reverse=True):
+                if flight_id in self.flights_dict:
+                    flight = self.flights_dict[flight_id]
+                    critical_flights.append({
+                        'flight_id': flight_id,
+                        'airline': flight.airline,
+                        'aircraft_id': flight.aircraft_id,
+                        'scheduled_time': flight.scheduled_time,
+                        'origin': flight.origin,
+                        'destination': flight.destination,
+                        'impact_score': score
+                    })
+            
+            return {
+                'critical_flights': critical_flights[:20],  # Return top 20
+                'total_flights': len(self.flight_graph.nodes()),
+                'total_connections': len(self.flight_graph.edges())
+            }
+        except Exception as e:
+            # Return informative error
+            return {
+                'error': str(e),
+                'critical_flights': [],
+                'total_flights': 0,
+                'total_connections': 0
+            }
+    
     def predict_cascade_impact(self, delay_scenario: Dict[str, float]) -> Dict:
         """
         Predict the impact of a delay scenario on the entire network.
@@ -503,9 +570,11 @@ class CascadeDelayPredictor:
                 size=10,
                 colorbar=dict(
                     thickness=15,
-                    title="Delay Level",
-                    xanchor='left',
-                    titleside='right'
+                    title=dict(
+                        text="Delay Level",
+                        side="right"
+                    ),
+                    xanchor='left'
                 ),
                 line=dict(width=2)
             )
