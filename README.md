@@ -1,114 +1,271 @@
 
-# Flight Schedule Optimization — Airline Operations Management
+# ✈️ Flight Schedule Optimization System
 
-Lightweight AI-powered toolkit and Streamlit dashboard to analyze, predict, and optimize flight schedules for busy airports (example: BOM, DEL). Designed for operations teams to find optimal time slots, identify cascading-delay flights, and run what-if schedule adjustments.
+An AI-powered airline operations management dashboard designed to optimize flight schedules at busy airports like Mumbai (BOM) and Delhi (DEL). This system helps operations teams identify optimal time slots, predict delays, and minimize cascading impacts through intelligent scheduling.
 
-## Quick checklist
-- Project overview and purpose — Done
-- Local setup and run instructions — Done
-- Data format & transformer details — Done
-- AI / Gemini key and response notes — Done
-- Troubleshooting & contribution notes — Done
+![Python](https://img.shields.io/badge/python-v3.10+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-v1.25+-red.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## What this project contains
-- `app/` — Streamlit dashboard and UI (`app/main.py`).
-- `data/` — sample CSVs and generated outputs.
-- `src/` — core modules: data processing, optimization, ML, NLP helpers.
-- `requirements.txt` — Python dependencies.
-- `README.md` — (this file).
+## 🎯 Problem Statement
 
-## Key features
-- Intelligent data transformer: auto-normalizes uploaded Excel/CSV into the project's canonical schema.
-- Delay prediction models and schedule tuning simulator.
-- Cascade-delay impact detection (network analysis).
-- Runway utilization and peak-slot analysis.
-- NLP Query interface (AI-powered insights) with concise metric output option.
+Due to capacity limitations and heavy passenger load, flight operations at busy airports are becoming a scheduling nightmare. Controllers and operators need to find efficiency in scheduling within system constraints and find means to de-congest flight traffic.
 
-## Requirements
-- Python 3.10+ recommended
-- Windows / macOS / Linux
-- `pip` available
+## 🚀 Features
 
-## Quick start (Windows PowerShell)
-1. Create and activate a virtual environment, install deps, and run the app:
+- **Intelligent Data Transformer**: Auto-normalizes uploaded Excel/CSV files into standardized format
+- **AI-Powered Analytics**: Real-time insights using Google Gemini AI integration
+- **Delay Prediction**: Machine learning models for predicting flight delays
+- **Schedule Optimization**: Recommends optimal time slots to reduce congestion
+- **Cascade Impact Analysis**: Identifies flights with highest cascading delay impact
+- **Runway Utilization**: Optimizes runway capacity and usage patterns
+- **NLP Query Interface**: Natural language processing for operational queries
+- **Interactive Dashboard**: Comprehensive Streamlit-based visualization
 
+## 📋 Requirements
+
+- **Python**: 3.10 or higher
+- **Operating System**: Windows / macOS / Linux
+- **Package Manager**: pip
+- **Memory**: 4GB RAM minimum (8GB recommended for large datasets)
+
+## 🏗️ Project Structure
+
+```
+Flight-Schedule-Optimization/
+├── app/
+│   ├── main.py                 # Main Streamlit application
+│   └── main_updated.py         # Updated version with enhancements
+├── src/
+│   ├── data_processor.py       # Data processing and transformation
+│   ├── optimizer.py           # Schedule optimization algorithms
+│   ├── predictor.py           # ML models for delay prediction
+│   ├── anomaly_detector.py    # Anomaly detection in flight patterns
+│   ├── peak_time_analyzer.py  # Peak time analysis
+│   ├── cascade_delay_predictor.py  # Cascade delay analysis
+│   ├── nlp_query_processor.py # Natural language query processing
+│   └── advanced_optimizer.py  # Advanced optimization algorithms
+├── data/
+│   ├── flight_schedule_data.csv    # Sample flight data
+│   ├── optimized_schedule.csv      # Optimized schedule output
+│   └── Flight_Data.xlsx           # Sample Excel data
+├── notebooks/
+│   └── flight_analysis.ipynb     # Jupyter notebook for analysis
+├── docs/
+│   ├── flight_radar_integration.md
+│   └── openai_setup.md
+├── requirements.txt              # Python dependencies
+├── .env.example                 # Environment variables template
+└── README.md                   # This file
+```
+
+## ⚡ Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/monu808/Flight-Schedule-Optimization.git
+cd Flight-Schedule-Optimization
+```
+
+### 2. Set Up Virtual Environment
+
+**Windows (PowerShell):**
 ```powershell
-cd 'C:\Users\ASUS\Desktop\Honeywell_Hackathon\Flight-Schedule-Optimization'
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+
+**macOS/Linux:**
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
 pip install -r requirements.txt
+```
+
+### 4. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here  # Optional
+TIME_SLOT_DURATION=15
+MIN_TURNAROUND_TIME=45
+RUNWAY_09R_27L_CAPACITY=30
+RUNWAY_09L_27R_CAPACITY=30
+RUNWAY_14_32_CAPACITY=25
+```
+
+### 5. Run the Application
+
+```bash
 streamlit run app/main.py
 ```
 
-2. Open the URL printed by Streamlit (usually http://localhost:8501).
+The application will open in your browser at [http://localhost:8501](http://localhost:8501)
 
-## Data: expected format & transformer
-The application expects a canonical flight schedule table with (at minimum) these columns:
+## 📊 Data Format & Intelligent Transformer
 
-- `FlightNumber` — flight identifier (string)
-- `Airline` — airline code or name
-- `Scheduled_Departure` / `Scheduled_Arrival` — ISO-like datetimes or HH:MM
-- `Actual_Departure` / `Actual_Arrival` — ISO-like datetimes or HH:MM (optional)
-- `Runway` — runway identifier (optional)
-- `Origin` / `Destination` — airport ICAO/IATA codes
-- `Delay_Minutes` — numeric (optional; computed if missing)
+### Expected Data Format
 
-Uploaded files often vary. Use the dashboard file-upload control to upload any Excel/CSV. The built-in intelligent transformer will:
+The application expects flight schedule data with the following columns:
 
-- Auto-detect common column names and map them to the canonical names.
-- Parse multiple datetime formats into pandas Timestamps.
-- Compute `Delay_Minutes` when actual times are present.
-- Fill missing required columns where possible and report unmappable columns.
+| Column | Type | Required | Description |
+|--------|------|----------|-------------|
+| `FlightNumber` | String | Yes | Flight identifier (e.g., AI101, 6E234) |
+| `Airline` | String | Yes | Airline code or name |
+| `Scheduled_Departure` | DateTime | Yes | Scheduled departure time |
+| `Scheduled_Arrival` | DateTime | Yes | Scheduled arrival time |
+| `Actual_Departure` | DateTime | No | Actual departure time |
+| `Actual_Arrival` | DateTime | No | Actual arrival time |
+| `Runway` | String | No | Runway identifier |
+| `Origin` | String | Yes | Origin airport code |
+| `Destination` | String | Yes | Destination airport code |
+| `Delay_Minutes` | Numeric | No | Computed if missing |
 
-If an uploaded file cannot be auto-mapped, the transformer will show a short report and an editable mapping preview in the UI.
+### Intelligent Data Transformer
 
-Developer note: the transformer lives in `src/data_processor.py` (search for `intelligent_transform`) and is invoked by `app/main.py` during upload.
+The system includes an intelligent data transformer that:
 
-## AI integration (Gemini)
-- The app supports Google Generative AI (Gemini). Set your API key in a `.env` file or environment variable named `GEMINI_API_KEY`.
-- Example `.env` entry:
+- **Auto-detects** common column names and maps them to canonical names
+- **Parses** multiple datetime formats automatically
+- **Computes** delay minutes when actual times are available
+- **Fills** missing required columns where possible
+- **Reports** unmappable columns for manual review
 
+Upload any Excel/CSV file through the dashboard - the transformer will handle format conversion automatically.
+
+## 🤖 AI Integration
+
+### Google Gemini AI
+
+The application supports Google Generative AI (Gemini) for intelligent insights:
+
+1. **API Key Setup**: Set your API key in the `.env` file:
+   ```env
+   GEMINI_API_KEY=your_api_key_here
+   ```
+
+2. **Response Format**: The system is configured for concise metric responses by default
+
+3. **Common Issues**:
+   - **404 models/gemini-pro**: Update model name in `app/main.py` to `gemini-1.5-flash` or `gemini-1.5-pro`
+   - **Rate Limits**: The system gracefully falls back to local analysis mode
+
+### Fallback Mode
+
+When AI services are unavailable, the system provides:
+
+- Built-in recommendation engine
+- Local statistical analysis
+- Basic optimization algorithms
+
+## 📖 How to Use
+
+### Main Features
+
+1. **Upload Data**: Use the sidebar file upload to import Excel/CSV files
+2. **Review Mapping**: Check the intelligent transformation preview
+3. **Apply Filters**: Filter by airport, date range, airline, etc.
+4. **Get AI Insights**: Click quick-action buttons for optimization, risk, and revenue analysis
+5. **Schedule Tuning**: Use the simulator to test alternate schedules
+6. **Export Results**: Download optimized schedules and analysis reports
+
+### Dashboard Navigation
+
+- **📊 Dashboard**: Overview of flight operations and key metrics
+- **🔧 Optimization & AI**: Schedule optimization and AI-powered insights  
+- **🔍 Query Interface**: Natural language queries for operational questions
+- **📈 Analytics**: Detailed performance analytics and predictions
+- **⚙️ Advanced**: ML models, anomaly detection, and cascade analysis
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+- **Streamlit won't start**: Ensure virtual environment is activated and dependencies installed
+- **Large file hangs**: Use smaller data samples for initial testing
+- **AI responses too long**: Adjust prompt settings in `app/main.py`
+- **Missing packages**: Run `pip install -r requirements.txt` again
+- **Memory issues**: Increase system memory or reduce dataset size
+
+### Performance Tips
+
+- Use data filtering to reduce processing load
+- Enable caching for repeated operations
+- Close unused browser tabs when running large analyses
+
+## 🧪 Development
+
+### Setting Up Development Environment
+
+```bash
+# Install development dependencies
+pip install -r requirements.txt
+pip install pytest black flake8 mypy
+
+# Run tests
+pytest src/
+
+# Code formatting
+black src/ app/
+
+# Linting
+flake8 src/ app/
 ```
-GEMINI_API_KEY=your_api_key_here
-```
 
-- The app requests concise metric-only responses by default (see `app/main.py` prompt section labeled `RESPONSE FORMAT REQUIRED`). If you need longer explanations, toggle verbosity in the UI or edit that prompt.
+### Project Architecture
 
-Common Gemini issues:
-- "404 models/gemini-pro" — update the model name in `app/main.py` to a supported model (e.g. `gemini-1.5-flash` / `gemini-1.5-pro` depending on your access).
+- **Data Layer**: `src/data_processor.py` handles data ingestion and transformation
+- **ML Layer**: `src/predictor.py`, `src/anomaly_detector.py` for predictive analytics
+- **Optimization Layer**: `src/optimizer.py`, `src/advanced_optimizer.py` for scheduling
+- **UI Layer**: `app/main.py` Streamlit dashboard
+- **AI Layer**: NLP processing and Gemini integration
 
-Fallback: if Gemini isn't available, the app gracefully falls back to a local analysis mode and the built-in recommendation engine.
+## 🤝 Contributing
 
-## How to use the main features
-1. Upload raw schedule (Excel/CSV) via the sidebar upload control.
-2. Review the transformation preview and confirm mapping.
-3. Use filters (airport, date range, airline) to narrow data.
-4. Click the AI quick-buttons (Optimization / Risk / Revenue) for concise metrics.
-5. Open the Schedule Tuner to simulate alternate scheduled times and see delay impact.
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Troubleshooting
-- If Streamlit fails to start: ensure `.venv` activated and `requirements.txt` installed.
-- If large uploads hang: check file size, use a sample subset to validate transform, increase memory if needed.
-- If AI responses are long: search `RESPONSE FORMAT REQUIRED` in `app/main.py` and adjust the prompt or toggle verbosity in the UI.
-- Missing packages: run `pip install -r requirements.txt` again.
+### Contribution Guidelines
 
-## Development notes
-- Linting & type-checking: run your preferred tools (e.g. `flake8`, `mypy`) against `src/`.
-- Tests: add unit tests for `src/data_processor.py` transformer and core ML modules.
+- Keep changes focused and well-documented
+- Add tests for new functionality
+- Follow existing code style and conventions
+- Update documentation for new features
 
-## Contribution
-- Fork the repo, create a branch, and submit a PR. Keep changes scoped and provide tests for new logic.
+## 📄 License
 
-## License
-- See `LICENSE` in the repo root.
+This project is licensed under the MIT License - see the `LICENSE` file for details.
 
-## Contact / References
-- FlightRadar24: https://www.flightradar24.com
-- FlightAware: https://www.flightaware.com
+## 🔗 References & Data Sources
+
+- **FlightRadar24**: [https://www.flightradar24.com](https://www.flightradar24.com)
+- **FlightAware**: [https://www.flightaware.com](https://www.flightaware.com)
+- **Mumbai Airport (BOM)**: [https://www.flightradar24.com/data/airports/bom](https://www.flightradar24.com/data/airports/bom)
+- **Delhi Airport (DEL)**: [https://www.flightradar24.com/data/airports/del](https://www.flightradar24.com/data/airports/del)
+
+## 🏆 Hackathon Submission
+
+This project addresses the Honeywell Hackathon challenge for flight schedule optimization by:
+
+1. ✅ **Analyzing flight data** from busy airports using open-source AI tools
+2. ✅ **Finding optimal takeoff/landing times** through scheduled vs actual time analysis
+3. ✅ **Identifying busiest time slots** to avoid congestion
+4. ✅ **Providing schedule tuning models** with delay impact visualization
+5. ✅ **Isolating high-impact flights** that cause cascading delays
+6. ✅ **Offering NLP interface** for natural language queries
 
 ---
 
-If you want, I can also:
-- generate a short one-page PDF report template with the key visuals to upload for the hackathon submission, or
-- add an in-app download button that exports the current analysis to PDF.
+**Built with ❤️ for airline operations teams**
 
